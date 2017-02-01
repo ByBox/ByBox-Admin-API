@@ -1,0 +1,4149 @@
+FORMAT: 1A
+
+# ByBox Admin API
+
+This document describes the API used by the ByBox Admin Dashboard application to interact with the server.
+
+For information about authentication and authorisation, see the [ByBox Authentication API][BbAuthApi].
+
+[BbAuthApi]: https://app.apiary.io/byboxauthentication
+
+# Group Impersonation
+
+An authenticated user that has SuperAdmin rights can impersonate being part of a different Client or Carrier.
+This is to allow administrators to view the impersonated group's status, and make high level changes such as assigning new doors.
+
+To impersonate a group, add the `Stockonnect-Impersonate` header to the request, with the value `Group {groupId}`.
+You can get the required group id by using the Client or Carrier search.
+
+An example request and possible error codes that could be returned now follows
+
+## Index [/Api/Admin/Example]
+
+### Index [GET]
+
+This is a fake endpoint used to document possible error codes returned when passing in an impersonation header
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+            Stockonnect-Impersonate: Group 2
+
++ Response 400
+The impersonate header was found, but the value was in an invalid format
+
+    + Body
+
++ Response 403
+The impersonate header was found, but the user requesting is not a superAdmin and cannot impersonate
+
+    + Body
+
++ Response 404
+The impersonate header was found, but the group requested to impersonate does not exist
+
+    + Body
+
+# Group Home
+
+## Index [/Api/Admin/Home]
+
+### Index [GET]
+
+Retrieves what is effectively a view model for the Home screen. The data is arranged
+in the model in order to match fairly closely to the user interface.
+
+The length of the `recentUpdates` array is not specified but we should expect it
+to be a reasonably small number (≤ 10). The length of the `activity` array is expected
+to be about 30 items.
+
+Note that the user's name is not part of the greeting. That is becuase it would
+make it impossible to cache the result (and therefore the ETag) per company.
+
+As a point of note, the timestamp on updates and activities is an ISO format date
+which includes the timezone of the user that performed them. We should use `moment.js`
+or something similar to format the dates appropriately for the user who is using
+the admin site.
+
++ Request
+
+    + Headers
+    
+            If-None-Match: ETAG-FROM-LAST-REQUEST
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+Either no `If-None-Match` header was supplied, or the ETag it specifies is not current.
+
+    + Headers
+    
+            ETag: A-NEW-ETAG-FOR-THIS-REQUEST
+    
+    + Body
+    
+            {
+                "greeting": {
+                    "companyName": "ByBox"
+                },
+                "dashboard": {
+                    "assignedUsers": 102,
+                    "unassignedUsers": 24,
+                    "activeLocations": 8,
+                    "inactiveLocations": 0,
+                    "activeDoors": 49,
+                    "inactiveDoors": 21,
+                    "assignedCarriers": 2,
+                    "unassignedCarriers": 0,
+                    "assignedClients": 0,
+                    "unassignedClients": 0,
+                    "assignedJobs": 100,
+                    "unassignedJobs": 150,
+                    "completedJobs": 500
+                },
+                "recentUpdates": [
+                    {
+                        "type": "UserSuspended",
+                        "qty": 1,
+                        "by": { 
+                                "id": 1, 
+                                "name": "Jessica Smith"
+                              },
+                        "at": "2016-01-20T09:31:47.276+00:00"
+                    },
+                    {
+                        "type": "DoorModified",
+                        "qty": 1,
+                        "by": { 
+                                "id": 2, 
+                                "name": "Peter O'Shaughnessy"
+                              },
+                        "at": "2016-01-20T09:29:47.993+00:00"
+                    },
+                    {
+                        "type": "UserAdded",
+                        "qty": 23,
+                        "by": { 
+                                "id": 3, 
+                                "name": "Mike James"
+                              },
+                        "at": "2016-01-20T09:14:47.795+00:00"
+                    },
+                    {
+                        "type": "DoorAdded",
+                        "qty": 6,
+                        "by": { 
+                                "id": 4, 
+                                "name": "Shazia Kasuji"
+                              },
+                        "at": "2016-01-20T09:04:47.323+00:00"
+                    },
+                    {
+                        "type": "LocationAdded",
+                        "qty": 1,
+                        "by": { 
+                                "id": 4, 
+                                "name": "Shazia Kasuji"
+                              },
+                        "at": "2016-01-20T09:04:27.563+00:00"
+                    }
+                ],
+                "recentActivity": [
+                    {
+                        "id": "1-20160121142253443",
+                        "location": { 
+                                "id": 1, 
+                                "name": "Vauxhall"
+                              },
+                        "door": { 
+                                "id": 1, 
+                                "name": "1C"
+                              },
+                        "doorSize": "Small",
+                        "scannedIn": ["1234567","123456"],
+                        "scannedOut": ["747464746","83873873","43847387"],
+                        "at": "2016-01-21T14:22:53.443+00:00",
+                        "by": { 
+                                "id": 1, 
+                                "name": "Ian Whitehouse"
+                                "canView": true,
+                                "group": { 
+                                    "id": 1, 
+                                    "name": "ByBox"
+                                }
+                              },
+                       "carrier": null
+                    },
+                    {
+                        "id": "2-20160121151753443",
+                        "location": { 
+                                "id": 2, 
+                                "name": "Grenoble"
+                              },
+                        "door": { 
+                                "id": 2, 
+                                "name": "2D"
+                              },
+                        "doorSize": "Large",
+                        "scannedIn": [],
+                        "scannedOut": ["38723723", "372832837", "328328737"],
+                        "at": "2016-01-21T15:17:53.443+01:00",
+                        "by": { 
+                                "id": 2, 
+                                "name": "Jacques Delors",
+                                "canView": true,
+                                "group": { 
+                                    "id": 1, 
+                                    "name": "ByBox"
+                                }
+                              },
+                        "carrier": null
+                    },
+                    {
+                        "id": "3-20160121141053454",
+                        "location": { 
+                                "id": 1, 
+                                "name": "Vauxhall"
+                              },
+                        "door": { 
+                                "id": 3, 
+                                "name": "1A"
+                              },
+                        "doorSize": "Medium",
+                        "doorMode": "General",
+                        "scannedIn": ["2828282","2828282","2828282"],
+                        "scannedOut": [],
+                        "at": "2016-01-21T14:10:53.454+00:00",
+                        "by": { 
+                                "id": 1, 
+                                "name": "Ian Whitehouse",
+                                "canView": true,
+                                "group": { 
+                                    "id": 1, 
+                                    "name": "ByBox"
+                                }
+                              },
+                        "carrier": null
+                    },
+                    {
+                        "id": "3-20160121141153454",
+                        "location": { 
+                                "id": 1, 
+                                "name": "Vauxhall"
+                              },
+                        "door": { 
+                                "id": 3, 
+                                "name": "1A"
+                              },
+                        "doorSize": "Medium",
+                        "doorMode": "General",
+                        "scannedIn": [],
+                        "scannedOut": ["38438383", "2282828"],
+                        "at": "2016-01-21T14:11:53.454+00:00",
+                        "by": { 
+                                "id": 4, 
+                                "name": "Mark Bromwell",
+                                "canView": true,
+                                "group": { 
+                                    "id": 1, 
+                                    "name": "ByBox"
+                                }
+                              },
+                        "carrier": null
+                    }
+                ]
+            }                   
+
++ Response 304
+The data has not changed since the request was last made.
+
+    + Body
+
+# Group Notification
+
+## Index [/Api/Admin/Notifications]
+
+### Index [GET]
+Returns all notifications for the current user's group
+
++ Request
+
+    + Headers
+
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+
+    + Body
+    
+            [
+                {
+                    "id": 1,
+                    "groupId": 1,
+                    "severity": "Information",
+                    "type": "DoorOpen",
+                    "entities": {
+                            "user": {
+                                "id": 1, 
+                                "name": "Mark Bromwell"
+                                },
+                            "door": {
+                                "id": 1,
+                                "name": "Door name 001"
+                                },
+                            "location": {
+                                "id": 1,
+                                "name": "Coventry"
+                                }
+                        },
+                    "dateOfNotification": "2016-01-22T15:17:53.443+01:00",
+                    "cleared": false,
+                    "userCleared": {
+                        "id": 1,
+                        "name": "Mark Bromwell"
+                    },
+                    "dateCleared": "2016-01-23T15:17:53.443+01:00"
+                }
+            ]
+
+# Group Search
+
+## Index [/Api/Admin/Search{?searchTerm,type,page}]
+
+### Index [GET]
+Search for locations, users, doors and tracking numbers in one request. Results are returned grouped by result type in pages of 6 Locations.
+
++ Parameters
+    + searchTerm (string, optional) - Filters results by name
+    + type (enum[string], optional) - The type of result to search for
+        + Members
+            + `All`
+            + `Location`
+            + `User`
+            + `Door`
+            + `TrackingNumber`
+        + Default: `All`
+    + page (number, optional) - The page of the filtered results to return
+        + Default: `1`
++ Request
+
+    + Headers
+
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+
+    + Body
+    
+            {
+                "locatons": {
+                    "results": [
+                        {
+                            "id": 1,
+                            "name": "Coventry",
+                            "lat": 52.406822,
+                            "lon": -1.519693,
+                            "address": {
+                                "address1": "Address 1",
+                                "address2": "Address 1",
+                                "address3": "Address 1",
+                                "address4": "Address 1",
+                                "address5": "Address 1",
+                                "postalCode": "CV6 5PW",
+                                "country": "Great Britain",
+                            },
+                            "numberOfDoors": 1,
+                            "notes": "Behind locked gate",
+                            "doors": [
+                                {
+                                    "id": 1,
+                                    "name": "Door 1",
+                                    "size": "Small",
+                                    "numberOfItems": 2
+                                }
+                            ]
+                        },
+                        {
+                            "id": 2,
+                            "name": "Vauxhall",
+                            "lat": 51.488616,
+                            "lon": -0.120714,
+                            "address": {
+                                "address1": "Address 1",
+                                "address2": "Address 1",
+                                "address3": "Address 1",
+                                "address4": "Address 1",
+                                "address5": "Address 1",
+                                "postalCode": "CV6 5PW",
+                                "country": "Great Britain",
+                            },
+                            "numberOfDoors": 1,
+                            "notes": "Behind locked gate",
+                            "doors": [
+                                {
+                                    "id": 2,
+                                    "name": "Door 2",
+                                    "size": "Large",
+                                    "numberOfItems": 5
+                                }
+                            ]
+                        }
+                    ],
+                    "totalResults": 2,
+                    "totalNumberOfPages": 1,
+                    "currentPage": 1
+                },
+                "users": {
+                    "results": [
+                        {
+                            "id": 1,
+                            "username": "mark.bromwell",
+                            "firstName": "Mark",
+                            "lastName": "Bromwell",
+                            "emailAddress": "mark.bromwell@bybox.com",
+                            "group": {
+                                "id": 1,
+                                "name": "ByBox"
+                            },
+                            "numberOfAssignedDoors": 2,
+                            "numberOfAssignedLocations": 1,
+                            "numberOfPendingCollections": 0,
+                            "locations": [
+                                {
+                                    "id": 1,
+                                    "name": "Coventry"
+                                    "doors": [
+                                        {
+                                            "id": 1,
+                                            "name": "Door 1",
+                                            "size": "Small"
+                                        },
+                                        {
+                                            "id": 2,
+                                            "name": "Door 2",
+                                            "size": "Large"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "id": 2,
+                            "username": "shazia.kasuji",
+                            "firstName": "Shazia",
+                            "lastName": "Kasuji",
+                            "emailAddress": "shazia.kasuji@bybox.com",
+                            "group": {
+                                "id": 1,
+                                "name": "ByBox"
+                            },
+                            "numberOfAssignedDoors": 2,
+                            "numberOfAssignedLocations": 1,
+                            "numberOfPendingCollections": 0,
+                            "locations": [
+                                {
+                                    "id": 1,
+                                    "name": "Coventry",
+                                    "doors": [
+                                        {
+                                            "id": 1,
+                                            "name": "Door 1",
+                                            "size": "Small"
+                                        },
+                                        {
+                                            "id": 2,
+                                            "name": "Door 2",
+                                            "size": "Large"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "totalResults": 2,
+                    "totalNumberOfPages": 1,
+                    "currentPage": 1
+                },
+                "doors": {
+                    "results": [
+                        {
+                            "id": 1,
+                            "name": "Door 1",
+                            "size": "Small",
+                            "location": {
+                                "id": 1,
+                                "name": "Coventry"
+                            },
+                            "numberOfAssignedUsers": 2,
+                            "numberOfAssignedCarriers": 1,
+                            "numberOfItems": 2,
+                            "assignedUsers": [
+                                {
+                                    "id": 1,
+                                    "name": "Mark Bromwell"
+                                },
+                                {
+                                    "id": 2,
+                                    "name": "Shazia Kasuji"
+                                }
+                            ],
+                            "assignedCarriers": [
+                                {
+                                    "id": 2,
+                                    "name": "Example Carrier"
+                                }
+                            ],
+                            "items": [
+                                {
+                                    "groupId": 1,
+                                    "trackingNumber": "292929292",
+                                    "user": {
+                                        "id": 1,
+                                        "name": "Mark Bromwell"
+                                    },
+                                    "scannedInDate": "2016-01-21T15:17:53.443+01:00"
+                                },
+                                {
+                                    "groupId": 1,
+                                    "trackingNumber": "898098098",
+                                    "user": {
+                                        "id": 1,
+                                        "name": "Mark Bromwell"
+                                    },
+                                    "scannedInDate": "2016-01-22T15:17:53.443+01:00"
+                                }
+                            ]
+                        }
+                    ],
+                    "totalResults": 2,
+                    "totalNumberOfPages": 1,
+                    "currentPage": 1
+                },
+                "trackingNumbers": {
+                    "results": [
+                        {
+                            "location": {
+                                "id": 1,
+                                "name": "Coventry"
+                            },
+                            "door": {
+                                "id": 1,
+                                "name": "Door 1"
+                            },
+                            "trackingNumber": "433498348",
+                            "scannedInDate": "2016-01-22T15:17:53.443+01:00"
+                        },
+                        {
+                            "location": {
+                                "id": 2,
+                                "name": "Vauxhall"
+                            },
+                            "door": {
+                                "id": 2,
+                                "name": "Door 2"
+                            },
+                            "trackingNumber": "08098098",
+                            "scannedInDate": "2016-01-22T15:17:53.443+01:00"
+                        }
+                    ],
+                    "totalResults": 2,
+                    "totalNumberOfPages": 1,
+                    "currentPage": 1
+                }
+            }
+
+# Group Location
+
+## By Id [/Api/Admin/Locations/{id}?{suspendedDoors}]
+
+### Index [GET]
+
+Returns the specific location by id.
+
++ Parameters
+    + id (number) - The id of the location to return
+    + suspendedDoors (boolean, optional) - The suspended status of the doors returned in the location
+        + Default: `false`
+    
++ Request (application/hal+json)
+
++ Response 200 (application/hal+json)
+
+                 {
+                    "id":1,
+                    "name":"Coventry",
+                    "address":{
+                        "address1":"address1",
+                        "address2":"address2",
+                        "address3":"address3",
+                        "address4":"address4",
+                        "address5":"address5",
+                        "postalCode":"CV6 5PW",
+                        "country":"Great Britain"
+                    },
+                    "lat": 52.406822,
+                    "lon": -1.519693,
+                    "notes": "Behind the stairs",
+                    "numberOfDoors": 2,
+                    "doors":[
+                       {
+                          "id":1,
+                          "name":"Door 1",
+                          "size":"Small",
+                          "numberOfItems": 2,
+                          "isSuspended": false,
+                          "profile": {
+                            "id": 1,
+                            "name": "Delivery"
+                          }
+                       },
+                       {
+                          "id": 2,
+                          "name": "Door 2",
+                          "size":"Medium",
+                          "numberOfItems": 3,
+                          "isSuspended": false,
+                          "profile": {
+                            "id": 1,
+                            "name": "Delivery"
+                          }
+                       }
+                    ],
+                    "_links":{
+                       "self":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations/1"
+                       },
+                       "door":[
+                          {
+                             "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/1"
+                          },
+                          {
+                             "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/2"
+                          }
+                       ]
+                    }
+                 }
+
+## Search [/Api/Admin/Locations{?searchTerm,suspended,allLocations,sortOrder,page}]
+
+### Index [GET]
+
+Search for locations. Results are returned in pages of 25 Locations.
+
++ Parameters
+    + searchTerm (string, optional) - Filters locations by name and postal code
+    + suspended (boolean, optional) - Filters locations by suspended status
+        + Default: `false`
+    + allLocations (boolean, optional) - Shows all locations, regardless of where they're assigned (only available to super admin users)
+    + sortOrder (enum[string], optional) - The sort order of the returned locations
+        + Members
+            + `RecentActivity`
+            + `Name`
+        + Default: `RecentActivity`
+    + page (number, optional) - The page of the filtered locations to return
+        + Default: `1`
+
++ Request (application/hal+json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/hal+json)
+
+        {
+           "totalResults":1,
+           "totalPages":1,
+           "page":1,
+           "_links":{
+              "self":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations?searchTerm=Coventry&sortOrder=RecentActivity&page=1"
+              },
+              "page":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations{?searchTerm,sortOrder,page}",
+                 "templated":true
+              },
+              "users":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users{?searchTerm,locationId,doorId,sortOrder,page}",
+                 "templated":true
+              },
+              "location":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations/1"
+              }
+           },
+           "_embedded":{
+              "location":[
+                 {
+                    "id":1,
+                    "name":"Coventry",
+                    "address":{
+                        "address1":"address1",
+                        "address2":"address2",
+                        "address3":"address3",
+                        "address4":"address4",
+                        "address5":"address5",
+                        "postalCode":"CV6 5PW",
+                        "country":"Great Britain"
+                    },
+                    "lat": 52.406822,
+                    "lon": -1.519693,
+                    "numberOfDoors": 2,
+                    "notes": "Behind the stairs",
+                    "doors":[
+                       {
+                          "id":1,
+                          "name":"Door 1",
+                          "size":"Small",
+                          "numberOfItems": 2,
+                          "isSuspended": false,
+                          "profile": {
+                            "id": 1,
+                            "name": "Delivery"
+                          }
+                       },
+                       {
+                          "id": 2,
+                          "name": "Door 2",
+                          "size":"Medium",
+                          "numberOfItems": 3,
+                          "isSuspended": false,
+                          "profile": {
+                            "id": 1,
+                            "name": "Delivery"
+                          }
+                       }
+                    ],
+                    "_links":{
+                       "self":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations/1"
+                       },
+                       "door":[
+                          {
+                             "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/1"
+                          },
+                          {
+                             "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/2"
+                          }
+                       ]
+                    }
+                 }
+              ]
+           }
+        }
+        
+## Summary [/Api/Admin/Locations/Summary]
+
+### Index [GET]
+
++ Request
+
+    + Headers
+    
+            If-None-Match: ETAG-FROM-LAST-REQUEST
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+Either no `If-None-Match` header was supplied, or the ETag it specifies is not current.
+
+    + Headers
+    
+            ETag: A-NEW-ETAG-FOR-THIS-REQUEST
+    
+    + Body
+    
+            {
+                "activeLocations": 8,
+                "inactiveLocations": 0,
+                "activeDoors": 49,
+                "inactiveDoors": 21,
+            }
+
++ Response 304
+The data has not changed since the request was last made.
+
+    + Body 
+
+## Create [/Api/Admin/Locations/Create/]
+
+### Create [POST]
+
+Creates a new location with the supplied details.
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "name": "new location",
+                "lat": 0.12354,
+                "lon": 1.2354,
+                "address":{
+                        "address1":"address1",
+                        "address2":"address2",
+                        "address3":"address3",
+                        "address4":"address4",
+                        "address5":"address5",
+                        "postalCode":"CV6 5PW",
+                        "country":"Great Britain"
+                    },
+                "notes": "Through the gate at the far side"
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the location was successfully created
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the location is missing the name, lat or lon details
+
+    + Body
+
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested location name is already in use by an existing location
+
+    + Body
+    
+## Update [/Api/Admin/Locations/Update/]
+
+### Update [PUT]
+
+Updates an existing location with the supplied details. 
+All properties will be overriden with what is supplied in the request, if a request property is empty, the corresponding property for the location will be set to empty (where possible).
+Ensure you send all properties, even if they remain unchanged
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "id": 2,
+                "name": "new location",
+                "lat": 0.12354,
+                "lon": 1.2354,
+                "address":{
+                        "address1":"address1",
+                        "address2":"address2",
+                        "address3":"address3",
+                        "address4":"address4",
+                        "address5":"address5",
+                        "postalCode":"CV6 5PW",
+                        "country":"Great Britain"
+                    },
+                "notes": "Through the gate at the far side"
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the location was successfully updated
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing the id, name, lat or lon details
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when a location with the supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested name is already in use by an existing location
+
+    + Body
+
+## Suspend [/Api/Admin/Locations/Suspend/]
+
+### Suspend [DELETE]
+
+Suspends existing locations by id. They will no longer appear in search results by default 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the locations are successfully suspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any location with a supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested location is already suspended
+
+    + Body   
+
+## Unsuspend [/Api/Admin/Locations/Unsuspend/]
+
+### Unsuspend [PUT]
+
+Unsuspends suspended locations by id. 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the locations are successfully unsuspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any location with a supplied id is not found
+    
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested location is not suspended
+
+    + Body  
+   
+# Group Door
+
+## By Id [/Api/Admin/Doors/{id}]
+
+### Index [GET]
+
+Returns the specific door by id.
+
++ Parameters
+    + id (number) - The id of the door to return
+    
++ Request (application/hal+json)
+
++ Response 200 (application/hal+json)
+
+                 {
+                      "id": 1,
+                      "name": "Door 1",
+                      "size": "Small",
+                      "lockId": 1,
+                      "codeChangePending": false,
+                      "numberOfAssignedUsers": 2,
+                      "numberOfAssignedCarriers": 1,
+                      "numberOfAssignedClients": 0,
+                      "numberOfItems": 2,
+                      "location": {
+                        "id": 1,
+                        "name": "Coventry"
+                      },
+                      "profile": {
+                        "id": 1,
+                        "name": "Delivery"
+                      },
+                      "assignedUsers": [
+                        {
+                          "id": 2,
+                          "name": "Mark Bromwell"
+                        },
+                        {
+                          "id": 3,
+                          "name": "Shazia Kasuji"
+                        }
+                      ],
+                      "assignedCarriers": [
+                        {
+                          "id": 2,
+                          "name": "Example Carrier"
+                        }
+                      ],
+                      "assignedClients": [
+                      ],
+                      "items": [
+                        {
+                          "trackingNumber": "123456",
+                          "user": {
+                            "id": 13,
+                            "name": "Danny Jones"
+                          },
+                          "assignedTo": {
+                            "id": 1,
+                            "name": "Mark Bromwell"
+                          },
+                          "scannedInDate": "2016-03-10T18:05:11.111591+00:00"
+                        },
+                        {
+                          "trackingNumber": "7891011",
+                          "user": {
+                            "id": 13,
+                            "name": "Danny Jones"
+                          },
+                          "scannedInDate": "2016-03-10T18:05:11.111591+00:00"
+                        }
+                      ],
+                      "_links": {
+                        "self": {
+                          "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/1"
+                        },
+                        "location": {
+                          "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations/1"
+                        },
+                        "user": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users/2"
+                          },
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users/3"
+                          }
+                        ]
+                      }
+                  }
+                  
+## Create [/Api/Admin/Doors/Create/]
+
+### Create [POST]
+
+Creates a new door with the supplied details.
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "name": "new door",
+                "size": "Small",
+                "graphic": "herringbone",
+                "location": {
+                    "id": 2,
+                    "name": "Coventry"
+                    },
+                "lockId": 1,
+                "profile": {
+                    "id": 1,
+                    "name": "Delivery"
+                }
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the door was successfully created
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the door is missing the name, size or locationId details
+
+    + Body
+
++ Response 409 (application/json; charset=utf-8)
+Indicates that the creation request failed due to the lock already being assigned to a different lock
+
+    + Body
+    
+## Update [/Api/Admin/Doors/Update/]
+
+### Update [PUT]
+
+Updates an existing door with the supplied details. 
+All properties will be overriden with what is supplied in the request, if a request property is empty, the corresponding property for the door will be set to empty (where possible).
+Ensure you send all properties, even if they remain unchanged
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "id": 2,
+                "name": "new door",
+                "size": "Small",
+                "graphic": "herringbone",
+                "location": {
+                    "id": 2,
+                    "name": "Coventry"
+                },
+                "lockId": 1,
+                "profile": {
+                    "id": 1,
+                    "name": "Delivery"
+                }
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the door was successfully updated
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing the id, name, size or locationId details
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when a door with the supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when the lock is already assigned to a different door
+
+    + Body
+
+## Suspend [/Api/Admin/Doors/Suspend/]
+
+### Suspend [DELETE]
+
+Suspends existing doors by id. They will no longer appear in search results by default 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the doors were successfully suspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any door with a supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested door is already suspended
+
+    + Body   
+
+## Unsuspend [/Api/Admin/Doors/Unsuspend/]
+
+### Unsuspend [PUT]
+
+Unsuspends suspended doors by id. 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the doors are successfully unsuspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any door with a supplied id is not found
+    
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested door is not suspended
+
+    + Body  
+    
+## User Assign [/Api/Admin/Doors/UserAssign]
+
+### User Assign [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorIds": [1, 2, 3],
+                "userIds": [1, 2, 3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the users have been assigned to the doors
+
+    + Body
+    
++ Response 400
+This is returned if the doorIds or userIds do not match an existing doors and users
+
+    + Body
+
+## User Unassign [/Api/Admin/Doors/UserUnassign]
+
+### User Unassign [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorIds": [1, 2, 3],
+                "userIds": [1, 2, 3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the users have been unassigned from the doors
+
+    + Body
+    
++ Response 400
+This is returned if the doorIds or userIds do not match an existing doors and users
+
+    + Body
+    
+## Carrier Assign [/Api/Admin/Doors/CarrierAssign]
+
+### Carrier Assign [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorIds": [1, 2, 3],
+                "carrierId": 2
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the doors have been assigned to the carrier
+
+    + Body
+    
++ Response 400
+This is returned if the doorIds or carrierId do not match existing doors or carrier
+
+    + Body
+
+## Carrier Unassign [/Api/Admin/Doors/CarrierUnassign]
+
+### Carrier Unassign [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorIds": [1, 2, 3],
+                "carrierId": 2
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the doors have been unassigned from the carrier
+
+    + Body
+    
++ Response 400
+This is returned if the doorIds or carrierId do not match existing doors or carrier
+
+    + Body
+
+## Client Assign [/Api/Admin/Doors/ClientAssign]
+
+### Client Assign [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorIds": [1, 2, 3],
+                "clientIds": [1, 2, 3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the clients have been assigned to the doors
+
+    + Body
+    
++ Response 400
+This is returned if the doorIds or clientIds do not match existing doors and clients
+
+    + Body
+
+## User Unassign [/Api/Admin/Doors/ClientUnassign]
+
+### Client Unassign [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorIds": [1, 2, 3],
+                "clientIds": [1, 2, 3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the clients have been unassigned from the doors
+
+    + Body
+    
++ Response 400
+This is returned if the doorIds or clientIds do not match existing doors and clients
+
+    + Body
+    
+## Manually Scan In [/Api/Admin/Doors/ScanIn]
+
+### Scan In [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorId": 1,
+                "userId": 1,
+                "trackingNumbers": ["1223411", "2323233", "2323223"]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the tracking numbers have been scanned into the door
+
+    + Body
+    
++ Response 400
+This is returned if the doorId and userId does not match an existing door and user, or if no tracking numbers have been supplied
+
+    + Body
+    
+## Manually Scan Out [/Api/Admin/Doors/ScanOut]
+
+### Scan Out [POST]
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "doorId": 1,
+                "userId": 1,
+                "trackingNumbers": ["1223411", "2323233", "2323223"]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the tracking numbers have been scanned out of the door
+
+    + Body
+    
++ Response 400
+This is returned if the doorId and userId does not match an existing door and user, or if no tracking numbers have been supplied
+
+    + Body
+    
+## Profiles [/Api/Admin/Doors/Profiles]
+
+### Index [GET]
+
+Returns all available door profiles
+
++ Request (application/json)
+      
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/son)
+
+    + Body
+    
+            [
+                {   "id": 1,
+                    "name": "Delivery"
+                },
+                {   "id": 2,
+                    "name": "Returns"
+                },
+            ]
+    
+# Group Lock
+
+## Search [/Api/Admin/Locks{?doorId,onlyUnassigned,page}]
+
+### Index [GET]
+
+Search for locks. Results are returned in pages of 25 locks.
+
++ Parameters
+    + doorId (number, optional) - Filters locks by assigned doorId
+    + onlyUnassigned (boolean, optional) - if set to true, only unassigned locks will be returned
+    + page (number, optional) - The page of the filtered locks to return
+        + Default: `1`
+
++ Request (application/hal+json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/hal+json)
+
+            {
+              "totalResults": 2,
+              "totalPages": 1,
+              "page": 1,
+              "_links": {
+                "self": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locks"
+                },
+                "next": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locks?onlyUnassigned=False&page=1"
+                },
+                "page": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locks{?doorId,onlyUnassigned,page}",
+                  "templated": true
+                },
+                "lock": [
+                  {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locks/1"
+                  },
+                  {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locks/2"
+                  }
+                ]
+              },
+              "_embedded": {
+                "lock": [
+                  {
+                    "id": 1,
+                    "door": {
+                      "id": 1,
+                      "name": "Door 1"
+                    },
+                    "_links": {
+                      "self": {
+                        "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locks/1"
+                      },
+                      "door": {
+                        "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/1"
+                      }
+                    },
+                  },
+                  {
+                    "id": 2,
+                    "door": {
+                      "id": 2,
+                      "name": "Door 2"
+                    },
+                    "_links": {
+                      "self": {
+                        "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locks/2"
+                      },
+                      "door": {
+                        "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/2"
+                      }
+                    },
+                  }
+                ]
+              }
+            }
+
+## Change Access Code [/Api/Admin/Locks/ChangeAccessCode/{lockId}]
+
+### Index [POST]
+
+Change the access code for the supplied lock. Only available to SuperAdmin users.
+
++ Parameters
+    + lockId (number) - The id of the lock to change the access code of
+   
++ Request (application/json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 204
+The lock access code change request has been processed.
+    
+    + Body
+
++ Response 404
+No lock with the supplied lock id was found.
+    
+    + Body
+
++ Response 409
+An access code change is already in progress for the lock with the supplied lock id.
+    
+    + Body
+    
+## Export Battery Levels Report [/Api/Admin/Locks/BatteryReport]
+
+### Index [GET]
+
+Returns a CSV file containing most recent battery levels from all locks. Can only be called by super admin users
+
++ Request (application/json)
+ 
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (text/csv)
+
+        Location Id,Location Name,Door Id,Door Name,Firmware Version,Last Reading Date,Battery Levels
+        2,"Vauxhall",34,"Door 14",1.1.3,2016-03-31T16:05:38,[0,4]
+        4,"Stirling",66,"Door 6",1.1.2,2016-03-30T14:47:19,[70,70]
+        
+# Group Tracking Number
+
+## Search Tracking Numbers [/Api/Admin/TrackingNumbers/Search?searchTerm={searchTerm}&page={page}&sort={sort}&assigned={assigned}&assignedToJob={assignedToJob}&locationId={locationId}]
+
+### List Tracking Numbers [GET]
+
+This endpoint returns a list of tracking numbers matching the search term for the specified page.
+
++ Parameters
+    + searchTerm (string) - The term to search for
+    + page (number) - The page of search results to return
+    + sort (object) - The sort arguments
+        
+        + RecentActivity
+        + Assigned
+        + Unassigned
+        + AssignedToJob
+        + UnassignedFromJob
+
+    + assigned (boolean) - `true` to only return assigned tracking number, or `false` to only return tracking number that are not assigned
+    + assignedToJob (boolean) - `true` to only return tracking numbers assigned to a job, or `false` to only return tracking number that are not assigned to a job
+    + locationId (number) - `1` to only return tracking numbers that are present in doors at location 1
+
++ Request
+
+    + Headers
+
+            Accept: application/hal+json
+            Authorization: Bearer ae2589363fb93e463d1bb739e0231524
+
++ Response 200 (application/hal+json; charset=utf-8)
+
+    + Body
+
+            {
+                "_embedded": {
+                    "trackingnumber": [
+                        {
+                            "_embedded": null,
+                            "_links": {
+                                "door": {
+                                    "href": "/StockonnectAPI/Admin/Doors/101"
+                                },
+                                "location": {
+                                    "href": "/StockonnectAPI/Admin/Locations/1"
+                                },
+                                "self": {
+                                    "href": "/StockonnectAPI/Admin/TrackingNumbers/PL1212/Door/101"
+                                }
+                            },
+                            "assignedTo": null,
+                            "door": {
+                                "id": 101,
+                                "name": "Office"
+                            },
+                            "job": null,
+                            "location": {
+                                "id": 1,
+                                "name": "Marks Place"
+                            },
+                            "scannedInDate": "2016-07-09T20:54:37+00:00",
+                            "trackingNumber": "PL1212"
+                        }
+                    ]
+                },
+                "_links": {
+                    "page": {
+                        "href": "/StockonnectAPI/Admin/TrackingNumbers/Search{?searchTerm,page,assignedTo,assignedToJob,locationId}",
+                        "templated": true
+                    },
+                    "self": {
+                        "href": "/StockonnectAPI/Admin/TrackingNumbers/Search?searchTerm=P&page=1&assignedToJob=False&locationId=1"
+                    },
+                    "trackingnumber": {
+                        "href": "/StockonnectAPI/Admin/TrackingNumbers/PL1212/Door/101"
+                    },
+                    "trackingnumbers": {
+                        "href": "/StockonnectAPI/Admin/TrackingNumbers/Search{?searchTerm,page,assignedTo,assignedToJob,locationId}",
+                        "templated": true
+                    }
+                },
+                "page": 1,
+                "resourceList": null,
+                "totalPages": 1,
+                "totalResults": 1
+            }
+            
+
+## By Tracking Number [/Api/Admin/TrackingNumbers/{trackingNumber}/Door/{doorId}]
+
+### Index [GET]
+
+Returns tracking number details
+
++ Parameters
+    + trackingNumber (string) - The tracking number and associated details to return
+    + doorId (integer) - The door id that the item is located in
+    
++ Request (application/hal+json)
+
++ Response 200 (application/hal+json)
+
+            {
+                "location": {
+                    "id":1,
+                    "name":"Coventry"
+                },
+                "door":{
+                    "id":1,
+                    "name":"Door 1"
+                },
+                "assignedTo": {
+                    "id":1,
+                    "name":"Mark Bromwell"
+                },
+                "trackingNumber":"123456",
+                "scannedInDate":"2016-03-10T18:05:11.111591+00:00",
+                "_links":{
+                    "self":{
+                        "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/TrackingNumbers/123456"
+                    },
+                    "door":{
+                        "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/1"
+                    },
+                    "location":{
+                        "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locations/1"
+                    },
+                    "user":{
+                        "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Users/1"
+                    }
+                }
+            }
+
+# Group User
+
+## By Id [/Api/Admin/Users/{id}]
+
+### Index [GET]
+
+Returns the specific user by id.
+
++ Parameters
+    + id (number) - The id of the user to return
+    
++ Request (application/hal+json)
+
++ Response 200 (application/hal+json)
+
+            {
+                "id": 13,
+                "username": "danny.jones",
+                "firstName": "Danny",
+                "lastName": "Jones",
+                "emailAddress": "danny.jones@bybox.com",
+                "group": {
+                  "id": 1,
+                  "name": "ByBox"
+                },
+                "isAdmin": false,
+                "isSuperAdmin": false,
+                "numberOfAssignedLocations": 1,
+                "numberOfAssignedDoors": 2,
+                "locations": [
+                  {
+                    "id": 1,
+                    "name": "Coventry",
+                    "doors": [
+                        {
+                            "id": 1,
+                            "name": "Door 1 has a very long name ",
+                            "size": "Small"
+                        },
+                        {
+                            "id": 2,
+                            "name": "Door 2",
+                            "size": "Large"
+                        }
+                    ]
+                  },
+                ],
+                "_links": {
+                  "self": {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users/13"
+                  },
+                  "group": {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Groups/1"
+                  },
+                  "door": [
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/1"
+                    },
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/2"
+                    }
+                  ],
+                  "location": [
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations/1"
+                    }
+                  ]
+                }
+              }
+
+## Search [/Api/Admin/Users{?searchTerm,locationId,doorId,suspended,onlyAdmin,sortOrder,page}]
+
+### Index [GET]
+
+Search for users within the authenticated user's group. Results are returned in pages of 25 Users.
+
++ Parameters
+    + searchTerm (string, optional) - Filters users by name
+    + locationId (number, optional) - Filters users by the location id of any assigned doors
+    + doorId (number, optional) - Filters users by door id of any assigned doors
+    + suspended (boolean, optional) - Filters users by suspended status
+        + Default: `false`
+    + onlyAdmin (boolean, optional) - Only show admin users if set to true
+        + Default: `false`
+    + sortOrder (enum[string], optional) - The sort order of the returned users
+        + Members
+            + `RecentActivity`
+            + `Surname`
+        + Default: `RecentActivity`
+    + page (number, optional) - The page of the filtered users to return
+        + Default: `1`
+
++ Request (application/hal+json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/hal+json)
+
+        {
+          "locations": [
+            {
+              "id": 1,
+              "name": "Coventry"
+            },
+            {
+              "id": 2,
+              "name": "Vauxhall"
+            }
+          ],
+          "doors": [
+            {
+              "id": 1,
+              "name": "Door 1"
+            },
+            {
+              "id": 2,
+              "name": "Door 2"
+            }
+          ],
+          "totalResults": 2,
+          "totalPages": 1,
+          "page": 1,
+          "_links": {
+            "self": {
+              "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users?searchTerm=Jones&locationId=1&doorId=1&sortOrder=Surname&page=1"
+            },
+            "page": {
+              "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users{?searchTerm,locationId,doorId,sortOrder,page}",
+              "templated": true
+            },
+            "users": {
+              "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users{?searchTerm,locationId,doorId,sortOrder,page}",
+              "templated": true
+            },
+            "user": [
+              {
+                "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users/13"
+              },
+              {
+                "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users/15"
+              }
+            ]
+          },
+          "_embedded": {
+            "user": [
+              {
+                "id": 13,
+                "username": "danny.jones",
+                "firstName": "Danny",
+                "lastName": "Jones",
+                "emailAddress": "danny.jones@bybox.com",
+                "group": {
+                  "id": 1,
+                  "name": "ByBox"
+                },
+                "isAdmin": false,
+                "isSuperAdmin": false,
+                "isSuspended":  false,
+                "numberOfAssignedLocations": 1,
+                "numberOfAssignedDoors": 2,
+                "numberOfPendingCollections": 0,
+                "locations": [
+                  {
+                    "id": 1,
+                    "name": "Coventry",
+                    "doors": [
+                        {
+                            "id": 1,
+                            "name": "Door 1",
+                            "size": "Small",
+                        },
+                        {
+                            "id": 2,
+                            "name": "Door 2",
+                            "size": "Large"
+                        }
+                    ]
+                  },
+                ],
+                "_links": {
+                  "self": {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users/13"
+                  },
+                  "group": {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Groups/1"
+                  },
+                  "door": [
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/1"
+                    },
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/2"
+                    }
+                  ],
+                  "location": [
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations/1"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": 15,
+                "username": "Danny.Jones2",
+                "firstName": "Danny",
+                "lastName": "Jones2",
+                "emailAddress": "dfjones1981@gmail.com",
+                "group": {
+                  "id": 1,
+                  "name": "ByBox"
+                },
+                "isAdmin": false,
+                "isSuperAdmin": false,
+                "isSuspended":  false,
+                "numberOfAssignedLocations": 1,
+                "numberOfAssignedDoors": 2,
+                "numberOfPendingCollections": 0,
+                "locations": [
+                  {
+                    "id": 1,
+                    "name": "Coventry",
+                    "doors": [
+                        {
+                            "id": 1,
+                            "name": "Door 1",
+                            "size": "Small"
+                        },
+                        {
+                            "id": 2,
+                            "name": "Door 2",
+                            "size": "Large"
+                        }
+                    ]
+                  },
+                ],
+                "_links": {
+                  "self": {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Users/15"
+                  },
+                  "group": {
+                    "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Groups/1"
+                  },
+                  "door": [
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/1"
+                    },
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Doors/2"
+                    }
+                  ],
+                  "location": [
+                    {
+                      "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/Admin/Locations/1"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+
+## Summary [/Api/Admin/Users/Summary]
+
+### Index [GET]
+
++ Request
+
+    + Headers
+    
+            If-None-Match: ETAG-FROM-LAST-REQUEST
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+Either no `If-None-Match` header was supplied, or the ETag it specifies is not current.
+
+    + Headers
+    
+            ETag: A-NEW-ETAG-FOR-THIS-REQUEST
+    
+    + Body
+    
+            {
+                "assignedUsers": 102,
+                "unassignedUsers": 24
+            }
+
++ Response 304
+The data has not changed since the request was last made.
+
+    + Body
+    
+## Create [/Api/Admin/Users/Create/]
+
+### Create [POST]
+
+Creates a new user with the supplied details. Emails an activation code to them so they can set up their password
+The activateUrl property is optional and should only be used if you want the notification email to redirect the user to a specific location to be activated
+
++ Request
+
+    + Headers
+    
+            Authorization: Basic RXJza2luZVVzZXI6OTQzNWU2NWYtOWY4MC00Mzc5LWFmZjItNjNhMDZiZTJhMWNl
+    
+    + Body
+    
+            {
+                "firstName": "Danny",
+                "lastName": "Jones",
+                "emailAddress": "danny.jones@bybox.com",
+                "phone": "07779789299"
+                "username": "Danny.Jones",
+                "isAdmin": false,
+                "isSuperAdmin": false,
+                "isAdminReadOnly": false,
+                "activateUrl": null,
+                "doors": [
+                    1,
+                    2
+                ],
+                "notifyOfGeneralDeliveries": false
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the user was successfully created
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing the firstName, lastName, email or username details
+
+    + Body
+
++ Response 403 (application/json; charset=utf-8)
+This is returned when the authorised user attempts to create a user of higher privilege than themselves
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested username is already in use by an existing user
+
+    + Body
+    
+## Update [/Api/Admin/Users/Update/]
+
+### Update [PUT]
+
+Updates an existing user with the supplied details. 
+All properties will be overriden with what is supplied in the request, if a request property is empty, the corresponding property for the user will be set to empty (where possible).
+Ensure you send all properties, even if they remain unchanged
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "id": 2,
+                "firstName": "Danny",
+                "lastName": "Jones",
+                "emailAddress": "danny.jones@bybox.com",
+                "phone": "07779789299"
+                "username": "Danny.Jones",
+                "isAdmin": false,
+                "isAdminReadOnly": false,
+                "isSuperAdmin": false,
+                "notifyOfGeneralDeliveries": false
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the user was successfully updated
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing the userId, firstName, lastName, email or username details
+
+    + Body
+
++ Response 403 (application/json; charset=utf-8)
+This is returned when the authorised user attempts to edit a user of higher privilege than themselves
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when a user with the supplied userId is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested username is already in use by an existing user
+
+    + Body
+
+## Suspend [/Api/Admin/Users/Suspend/]
+
+### Suspend [DELETE]
+
+Suspends existing users by id. They will no longer appear in search results by default 
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the uses are successfully suspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any user with a supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested user is already suspended
+
+    + Body   
+
+## Unsuspend [/Api/Admin/Users/Unsuspend/]
+
+### Unsuspend [PUT]
+
+Unsuspends suspended users by id. 
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the users are successfully unsuspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any user with a supplied id is not found
+    
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested user is not suspended
+
+    + Body 
+    
+## Restart Activation [/Api/Admin/Users/RestartActivation/]
+
+### Restart Activation [POST]
+
+Re-requests the activation email for the supplied user. 
+The activateUrl property is optional and should only be used if you want the notification email to redirect the user to a specific location to be activated
+
++ Request
+
+    + Body
+    
+            {
+                "username": "Danny.Jones",
+                "activateUrl": null
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the activation was sucessfully restarted
+
+    + Body
+    
+## Activate [/Api/Admin/Users/Activate/]
+
+### Activate [POST]
+
+Activates the requested user and assigns it the supplied password
+
++ Request
+
+    + Body
+    
+            {
+                "username": "Danny.Jones",
+                "activationCode": "123456789",
+                "newPassword": "password-here"
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the activation was sucessful
+
+    + Body
+
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing parameters, or the password is too simple
+
+    + Body   
+    
++ Response 403 (application/json; charset=utf-8)
+This is returned when the activation code doesn't match what what assigned to the user
+
+    + Body
+
+## Request Password Reset [/Api/Admin/Users/RequestPasswordReset/]
+
+### Request Password Reset [POST]
+
+Notifies the requested user via email how to reset their password.
+The confirmPasswordResetUrl property is optional and should only be used if you want the notification email to redirect the user to a specific location to reset their password
+
++ Request
+
+    + Body
+    
+            {
+                "username": "Danny.Jones",
+                "confirmPasswordResetUrl": null
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the notification was sent sucessfully
+
+    + Body
+
+## Reset Password [/Api/Admin/Users/ResetPassword/]
+
+### Reset Password [POST]
+
+Resets the password of the requested user and begins re-activation of their account via email notification
+The activateUrl property is optional and should only be used if you want the notification email to redirect the user to a specific location to be re-activated
+
++ Request
+
+    + Body
+    
+            {
+                "username": "Danny.Jones",
+                "resetCode": "123456789",
+                "activateUrl": null
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the password reset was sucessful
+
+    + Body
+    
++ Response 403 (application/json; charset=utf-8)
+This is returned when the reset code doesn't match what what assigned to the user or has expired
+
+    + Body
+  
+# Group Activity
+
+## Search [/Api/Admin/Activities{?searchTerm,locationId,doorId,userId,clientId,carrierId,trackingNumber,fromDate,toDate,sortOrder,page}]
+
+### Index [GET]
+
+Search for activities for the authenticated user's group. Results are returned in pages of 25 Activities.
+
++ Parameters
+    + searchTerm (string, optional) - Filters activities by tracking number and location name (fuzzy 'contains' search)
+    + locationId (number, optional) - Filters activities by location id
+    + doorId (number, optional) - Filters activities by door id
+    + userId (number, optional) - Filters activities by user id
+    + carrierId (number, optional) - Filters activities by carrier id
+    + clientId (number, optional) - Filters activities by client id, can only be used by super admins
+    + trackingNumber (string, optional) - Filters activities by tracking number (exact match)
+    + fromDate (string, optional) - Filters activities to those that occured after this date
+    + toDate (string, optional) - Filters activities to those that occured before this date
+    + sortOrder (enum[string], optional) - The sort order of the returned activities
+        + Members
+            + `DateDescending`
+            + `DateAscending`
+        + Default: `DateDescending`
+    + page (number, optional) - The page of the filtered activities to return
+        + Default: `1`
+
++ Request (application/hal+json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/hal+json)
+
+        {
+           "locations":[
+              {
+                 "id":1,
+                 "name":"Coventry"
+              },
+              {
+                 "id":5,
+                 "name":"New Brunswick"
+              }
+           ],
+           "doors":[
+              {
+                 "id":1327,
+                 "name":"Door 1167"
+              },
+              {
+                 "id":85,
+                 "name":"Door 25"
+              }
+           ],
+           "totalResults":200,
+           "totalPages":8,
+           "page":2,
+           "_links":{
+              "self":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities?fromDate=01%2F01%2F2016%2000%3A00%3A00&sortOrder=DateDescending&page=2"
+              },
+              "prev":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities?fromDate=01%2F01%2F2016%2000%3A00%3A00&sortOrder=DateDescending&page=1"
+              },
+              "next":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities?fromDate=01%2F01%2F2016%2000%3A00%3A00&sortOrder=DateDescending&page=3"
+              },
+              "page":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities{?searchTerm,locationId,doorId,fromDate,toDate,sortOrder,page}",
+                 "templated":true
+              },
+              "activities":{
+                 "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities{?searchTerm,locationId,doorId,fromDate,toDate,sortOrder,page}",
+                 "templated":true
+              },
+              "activity":[
+                 {
+                    "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities/1051-201602180908080694086"
+                 },
+                 {
+                    "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities/142-201602180815080684079"
+                 }
+              ]
+           },
+           "_embedded":{
+              "activity":[
+                 {
+                    "id":"1051-201602180908080694086",
+                    "location":{
+                       "id":5,
+                       "name":"New Brunswick"
+                    },
+                    "door":{
+                       "id":1051,
+                       "name":"Door 891"
+                    },
+                    "doorSize":"Medium",
+                    "doorMode":"Unassigned",
+                    "scannedIn":[
+                       "363003",
+                       "612084",
+                       "635673",
+                       "759074",
+                       "298681",
+                       "581501",
+                       "492596"
+                    ],
+                    "scannedOut":[
+                       "784353",
+                       "584084",
+                       "557613",
+                       "873799"
+                    ],
+                    "notScannedOut":[
+                       "080980",
+                       "098098",
+                       "989898"
+                       "567657
+                    ],
+                    "at":"2016-02-18T09:08:08.0694086+00:00",
+                    "by":{
+                       "id":3,
+                       "name":"Shazia Kasuji",
+                       "canView": true,
+                       "group": { 
+                            "id": 1, 
+                            "name": "ByBox"
+                       }
+                    },
+                    "carrier": null,
+                    "origin": "App",
+                    "notScannedOutReason": "UnableToIdentify",
+                    "_links":{
+                       "self":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities/1051-201602180908080694086"
+                       },
+                       "location":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Locations/5"
+                       },
+                       "door":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Doors/1051"
+                       },
+                       "user":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Users/3"
+                       },
+                       "group":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Groups/1"
+                       }
+                    }
+                 },
+                 {
+                    "id":"142-201602180815080684079",
+                    "location":{
+                       "id":4,
+                       "name":"Stirling"
+                    },
+                    "door":{
+                       "id":142,
+                       "name":"Door 82"
+                    },
+                    "doorSize":"Small",
+                    "doorMode":"Unassigned",
+                    "scannedIn":[
+                       "114292",
+                       "123460",
+                       "692850",
+                       "621688"
+                    ],
+                    "scannedOut":[
+                       "393996",
+                       "198807",
+                       "107977",
+                       "586586"
+                    ],
+                    "notScannedOut":[
+                       "080980",
+                       "098098",
+                       "989898"
+                       "567657
+                    ],
+                    "at":"2016-02-18T08:15:08.0684079+00:00",
+                    "by":{
+                       "id":12,
+                       "name":"Gordan Grasarevic",
+                       "canView": true,
+                       "group": { 
+                            "id": 1, 
+                            "name": "ByBox"
+                       }
+                    },
+                    "carrier": null,
+                    "origin": "App",
+                    "notScannedOutReason": "CannotOrWillNot",
+                    "_links":{
+                       "self":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Activities/142-201602180815080684079"
+                       },
+                       "location":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Locations/4"
+                       },
+                       "door":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Doors/142"
+                       },
+                       "user":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Users/12"
+                       },
+                       "group":{
+                          "href":"http://private-4de0b-byboxadminapi.apiary-mock.com/Groups/1"
+                       }
+                    }
+                 }
+              ]
+           }
+        }
+
+## Export [/Api/Admin/Activities/Export{?searchTerm,locationId,doorId,userId,clientId,carrierId,trackingNumber,fromDate,toDate,sortOrder}]
+
+### Index [GET]
+
+Returns activities for the authenticated user's group as a csv file.
+
++ Parameters
+    + searchTerm (string, optional) - Filters activities by tracking number and location name (fuzzy 'contains' search)
+    + locationId (number, optional) - Filters activities by location id
+    + doorId (number, optional) - Filters activities by door id
+    + userId (number, optional) - Filters activities by user id
+    + carrierId (number, optional) - Filters activities by carrier id
+    + clientId (number, optional) - Filters activities by client id, can only be used by super admins
+    + trackingNumber (string, optional) - Filters activities by tracking number (exact match)
+    + fromDate (string, optional) - Filters activities to those that occured after this date
+    + toDate (string, optional) - Filters activities to those that occured before this date
+    + sortOrder (enum[string], optional) - The sort order of the returned activities
+        + Members
+            + `DateDescending`
+            + `DateAscending`
+        + Default: `DateDescending`
+
++ Request (application/json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (text/csv)
+
+        Door Name, Location Name, Door Size, User, User Company, Date, Scanned In, Scanned Out
+        Door 1,Coventry,Small,Danny Jones,ByBox,10/03/2016 18:05:11 +00:00,098765|432100,123456|7891011
+        Door 1,Coventry,Small,Danny Jones,ByBox,02/03/2016 12:33:22 +00:00,098765|432100,123456|7891011
+        Door 1,Coventry,Small,Danny Jones,ByBox,01/03/2016 16:40:33 +00:00,098765|432100,123456|7891011
+        Door 1,Coventry,Small,Danny Jones,ByBox,01/03/2016 13:12:00 +00:00,098765|432100,123456|7891011
+        Door 1,Coventry,Small,Danny Jones,ByBox,01/03/2016 12:55:55 +00:00,098765|432100,123456|7891011
+        Door 1,Coventry,Small,Danny Jones,ByBox,01/03/2016 12:49:10 +00:00,,
+        Door 1,Coventry,Small,Danny Jones,ByBox,01/03/2016 12:37:52 +00:00,098765|432100,123456|7891011|123456|7891011
+        Door 1,Coventry,Small,Danny Jones,ByBox,01/03/2016 12:20:13 +00:00,098765|432100|098765|432100,123456|7891011
+
+# Group Carrier
+
+## ById [/Api/Admin/Carriers/{id}]
+
+### Index [GET]
+
+Returns the specific carrier by id.
+
++ Parameters
+    + id (number) - The id of the carrier to return
+    
++ Request (application/hal+json)
+    
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+            
++ Response 200 (application/hal+json)
+
+                    {
+                      "id": 2,
+                      "name": "Carrier 1",
+                      "emailAddress": "test@test.com",
+                      "phone": "07779789299",
+                      "isSuspended": false,
+                      "numberOfAssignedDoors": 2,
+                      "numberOfAssignedLocations": 1,
+                      "numberOfAssignedClients": 1,
+                      "numberOfPendingCollections": 0,
+                      "locations": [
+                        {
+                          "id": 1,
+                          "name": "Coventry",
+                          "doors": [
+                            {
+                              "id": 1,
+                              "name": "Door 1",
+                              "size": "Small"
+                            },
+                            {
+                              "id": 2,
+                              "name": "Door 2",
+                              "size": "Small"
+                            }
+                        }
+                      ],
+                      "assignedClients": [
+                        {
+                            "id": 1,
+                            "name": "Sample Client"
+                        }
+                      ],
+                      "_links": {
+                        "self": {
+                          "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Carriers/2"
+                        },
+                        "location": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locations/1"
+                          }
+                        ],
+                        "door": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/1"
+                          },
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/2"
+                          }    
+                        ],
+                        "client": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Clients/1"
+                          }
+                        ]
+                      }
+                    }
+
+## Search [/Api/Admin/Carriers{?searchTerm,locationId,doorId,suspended,allCarriers,sortOrder,page}]
+
+### Index [GET]
+
+Search for carriers within the authenticated user's group. Results are returned in pages of 25 Carriers.
+
++ Parameters
+    + searchTerm (string, optional) - Filters carriers by name
+    + locationId (number, optional) - Filters carriers by the location id of any assigned doors
+    + doorId (number, optional) - Filters carriers by door id of any assigned doors
+    + suspended (boolean, optional) - Filters carriers by their suspended status
+        + Default: `false`
+    + allCarriers (boolean, optional) - Returns all carriers, regardless of where they are assigned. Can only be used by super admins
+        + Default: `false`
+    + sortOrder (enum[string], optional) - The sort order of the returned activities
+        + Members
+            + `RecentActivity`
+            + `Name`
+        + Default: `RecentActivity`
+    + page (number, optional) - The page of the filtered carriers to return
+        + Default: `1`
+
++ Request (application/hal+json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/hal+json)
+
+            {
+              "locations": [
+                {
+                  "id": 1,
+                  "name": "Coventry"
+                }
+              ],
+              "doors": [
+                {
+                  "id": 1,
+                  "name": "Door 1"
+                },
+                {
+                  "id": 2,
+                  "name": "Door 2"
+                }
+              ],
+              "totalResults": 1,
+              "totalPages": 1,
+              "page": 1,
+              "_links": {
+                "self": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Carriers"
+                },
+                "page": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Carriers{?searchTerm,locationId,doorId,page}",
+                  "templated": true
+                },
+                "carrier": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Carriers/2"
+                }
+              },
+              "_embedded": {
+                "carrier": [
+                    {
+                      "id": 2,
+                      "name": "Carrier 1",
+                      "emailAddress": "test@test.com",
+                      "phone": "07779789299",
+                      "isSuspended": false,
+                      "numberOfAssignedDoors": 2,
+                      "numberOfAssignedLocations": 1,
+                      "numberOfAssignedClients": 1
+                      "numberOfPendingCollections": 0,
+                      "locations": [
+                        {
+                          "id": 1,
+                          "name": "Coventry",
+                          "doors": [
+                            {
+                              "id": 1,
+                              "name": "Door 1",
+                              "size": "Small"
+                            },
+                            {
+                              "id": 2,
+                              "name": "Door 2",
+                              "size": "Small"
+                            }
+                        }
+                      ],
+                      "assignedClients": [
+                        {
+                            "id": 1,
+                            "name": "Sample Client"
+                        }
+                      ],
+                      "_links": {
+                        "self": {
+                          "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Carriers/2"
+                        },
+                        "location": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locations/1"
+                          }
+                        ],
+                        "door": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/1"
+                          },
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/2"
+                          }    
+                        ],
+                        "client": [
+                           {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Clients/1"
+                          }
+                        ]
+                      }
+                    }
+                ]
+              }
+            }
+
+## Summary [/Api/Admin/Carriers/Summary]
+
+### Index [GET]
+
++ Request
+
+    + Headers
+    
+            If-None-Match: ETAG-FROM-LAST-REQUEST
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+Either no `If-None-Match` header was supplied, or the ETag it specifies is not current.
+
+    + Headers
+    
+            ETag: A-NEW-ETAG-FOR-THIS-REQUEST
+    
+    + Body
+    
+            {
+                "assignedCarriers": 2,
+                "unassignedCarriers": 0
+            }
+
++ Response 304
+The data has not changed since the request was last made.
+
+    + Body 
+    
+## Create [/Api/Admin/Carriers/Create/]
+
+### Create [POST]
+
+Creates a new carrier with the supplied details. 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "name": "New Carrier",
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the carrier was successfully created
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing the name
+
+    + Body
+
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested name is already in use by an existing client or carrier
+
+    + Body
+    
+## Update [/Api/Admin/Carriers/Update/]
+
+### Update [PUT]
+
+Updates an existing carrier with the supplied details. 
+All properties will be overriden with what is supplied in the request, if a request property is empty, the corresponding property for the carrier will be set to empty (where possible).
+Ensure you send all properties, even if they remain unchanged
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "id": 2,
+                "name": "New Carrier",
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the carrier was successfully updated
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing the name details
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when a carrier with the supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested name is already in use by an existing carrier
+
+    + Body
+
+## Suspend [/Api/Admin/Carriers/Suspend/]
+
+### Suspend [DELETE]
+
+Suspends existing carriers by id. They will no longer appear in search results by default 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the carriers are successfully suspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any carrier with a supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested carrier is already suspended
+
+    + Body   
+
+## Unsuspend [/Api/Admin/Carriers/Unsuspend/]
+
+### Unsuspend [PUT]
+
+Unsuspends suspended carriers by id. 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the carriers are successfully unsuspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any carrier with a supplied id is not found
+    
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested carrier is not suspended
+
+    + Body  
+   
+# Group Client
+
+## ById [/Api/Admin/Clients/{id}]
+
+### Index [GET]
+
+Returns the specific client by id.
+
++ Parameters
+    + id (number) - The id of the client to return
+    
++ Request (application/hal+json)
+    
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+            
++ Response 200 (application/hal+json)
+
+                    {
+                      "id": 1,
+                      "name": "Client 1",
+                      "isSuspended": false,
+                      "numberOfAssignedDoors": 2,
+                      "numberOfAssignedLocations": 1,
+                      "numberOfAssignedCarriers": 1,
+                      "numberOfPendingCollections": 0,
+                      "locations": [
+                        {
+                          "id": 1,
+                          "name": "Coventry",
+                          "doors": [
+                            {
+                              "id": 1,
+                              "name": "Door 1",
+                              "size": "Small"
+                            },
+                            {
+                              "id": 2,
+                              "name": "Door 2",
+                              "size": "Small"
+                            }
+                        }
+                      ],
+                      "assignedCarriers": [
+                        {
+                            "id": 2,
+                            "name": "Sample Carrier"
+                        }
+                      ]
+                      "_links": {
+                        "self": {
+                          "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Clients/1"
+                        },
+                        "location": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locations/1"
+                          }
+                        ],
+                        "door": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/1"
+                          },
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/2"
+                          }    
+                        ],
+                        "carrier": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Carriers/2"
+                          }
+                        ]
+                      }
+                    }
+
+## Search [/Api/Admin/Clients{?searchTerm,locationId,doorId,suspended,allClients,sortOrder,page}]
+
+### Index [GET]
+
+Search for clients that are assigned to the current authenticated user's group. Results are returned in pages of 25 Clients.
+Assigned carrier information is only shown to super admin users
+
++ Parameters
+    + searchTerm (string, optional) - Filters clients by name
+    + locationId (number, optional) - Filters clients by the location id of any assigned doors
+    + doorId (number, optional) - Filters clients by door id of any assigned doors
+    + suspended (boolean, optional) - Filters clients by their suspended status
+        + Default: `false`
+    + allClients (boolean, optional) - Returns all clients, regardless of where they are assigned. Can only be used by super admins
+        + Default: `false`
+    + sortOrder (enum[string], optional) - The sort order of the returned activities
+        + Members
+            + `RecentActivity`
+            + `Name`
+        + Default: `RecentActivity`
+    + page (number, optional) - The page of the filtered clients to return
+        + Default: `1`
+
++ Request (application/hal+json)
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/hal+json)
+
+            {
+              "locations": [
+                {
+                  "id": 1,
+                  "name": "Coventry"
+                }
+              ],
+              "doors": [
+                {
+                  "id": 1,
+                  "name": "Door 1"
+                },
+                {
+                  "id": 2,
+                  "name": "Door 2"
+                }
+              ],
+              "totalResults": 1,
+              "totalPages": 1,
+              "page": 1,
+              "_links": {
+                "self": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Clients"
+                },
+                "page": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Clients{?searchTerm,locationId,doorId,page}",
+                  "templated": true
+                },
+                "client": {
+                  "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Clients/1"
+                }
+              },
+              "_embedded": {
+                "client": [
+                    {
+                      "id": 1,
+                      "name": "Client 1",
+                      "isSuspended": false,
+                      "numberOfAssignedDoors": 2,
+                      "numberOfAssignedLocations": 1,
+                      "numberOfAssignedCarriers": 1,
+                      "numberOfPendingCollections": 0,
+                      "locations": [
+                        {
+                          "id": 1,
+                          "name": "Coventry",
+                          "doors": [
+                            {
+                              "id": 1,
+                              "name": "Door 1",
+                              "size": "Small"
+                            },
+                            {
+                              "id": 2,
+                              "name": "Door 2",
+                              "size": "Small"
+                            }
+                        }
+                      ],
+                      "assignedCarriers": [
+                        {
+                            "id": 2,
+                            "name": "Sample Carrier"
+                        }
+                      ]
+                      "_links": {
+                        "self": {
+                          "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Clients/2"
+                        },
+                        "location": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Locations/1"
+                          }
+                        ],
+                        "door": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/1"
+                          },
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Doors/2"
+                          }    
+                        ],
+                        "carrier": [
+                          {
+                            "href": "http://private-4de0b-byboxadminapi.apiary-mock.com/api/Admin/Carriers/2"
+                          }
+                        ]
+                      }
+                    }
+                ]
+              }
+            }
+
+## Summary [/Api/Admin/Clients/Summary]
+
+### Index [GET]
+
++ Request
+
+    + Headers
+    
+            If-None-Match: ETAG-FROM-LAST-REQUEST
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+Either no `If-None-Match` header was supplied, or the ETag it specifies is not current.
+
+    + Headers
+    
+            ETag: A-NEW-ETAG-FOR-THIS-REQUEST
+    
+    + Body
+    
+            {
+                "assignedClients": 2,
+                "unassignedClients": 0
+            }
+
++ Response 304
+The data has not changed since the request was last made.
+
+    + Body 
+
+## Assign Carrier [/Api/Admin/Clients/AssignCarrier]
+
+### Assign Carrier [POST]
+
+Assigns the given carrier to the given client and stores primary contact details for the carrier visible to the client
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "clientId": 1,
+                "carrierId": 1,
+                "phone": "07779789299",
+                "email": "danny.jones@bybox.com"
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the carrier is successfully assigned to the client
+
+    + Body
+    
++ Response 400
+This is returned if the clientId or carrierId are missing
+
+    + Body
+
++ Response 404
+This is returned if a client or carrier with the supplied id are not found
+
+    + Body
+    
++ Response 409
+This is returned if the carrier is already assigned to the client
+
+    + Body
+
+## Unassign Carrier [/Api/Admin/Clients/UnassignCarrier]
+
+### Unassign Carrier [POST]
+
+Unassigns the given carrier from the given client and removes the primary contact details for the carrier for that client.
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "clientId": 1,
+                "carrierId": 1,
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the carrier is successfully unassigned from the client
+
+    + Body
+    
++ Response 400
+This is returned if the clientId or carrierId are missing
+
+    + Body
+
++ Response 404
+This is returned if a client or carrier with the supplied id are not found
+
+    + Body
+    
++ Response 409
+This is returned if the carrier is not currently assigned to the client
+
+    + Body
+
+## Create [/Api/Admin/Clients/Create/]
+
+### Create [POST]
+
+Creates a new client with the supplied details. 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "name": "New Client",
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the client was successfully created
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request is missing the name
+
+    + Body
+
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested name is already in use by an existing client or carrier
+
+    + Body
+    
+## Update [/Api/Admin/Clients/Update/]
+
+### Update [PUT]
+
+Updates an existing client with the supplied details. 
+All properties will be overriden with what is supplied in the request, if a request property is empty, the corresponding property for the client will be set to empty (where possible).
+Ensure you send all properties, even if they remain unchanged
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "id": 2,
+                "name": "New Client",
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the client was successfully updated
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the client is missing the name details
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when a client with the supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when the requested name is already in use by an existing client or carrier
+
+    + Body
+
+## Suspend [/Api/Admin/Clients/Suspend/]
+
+### Suspend [DELETE]
+
+Suspends existing clients by id. They will no longer appear in search results by default 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the clients are successfully suspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any client with a supplied id is not found
+
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested client is already suspended
+
+    + Body   
+
+## Unsuspend [/Api/Admin/Clients/Unsuspend/]
+
+### Unsuspend [PUT]
+
+Unsuspends suspended clients by id. 
+This endpoint is only accessible to SuperAdmin users
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "ids": [2,3]
+            }
+    
++ Response 200 (application/json; charset=utf-8)
+This is returned when the clients are successfully unsuspended
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the request has no ids
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when any client with a supplied id is not found
+    
+    + Body
+    
++ Response 409 (application/json; charset=utf-8)
+This is returned when any requested client is not suspended
+
+    + Body  
+
+# Group Packages
+
+## Assign Collection [/Api/Admin/Packages/AssignCollection]
+
+### Index [POST]
+
+Assigns the collection of a specifed package to a particular user. 
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "barcode": "XXX1212121"
+                "userId": 1,
+                "doorId": 2,
+                "notes": "That item we talked about"
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the assignment was accepted for processing
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the assignment is invalid
+
+    + Body
+
+## Unassign Collection [/Api/Admin/Packages/UnassignCollection]
+
+### Index [POST]
+
+Unassigns the collection of a specifed package from a particular user. 
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "barcode": "XXX1212121"
+                "userId": 1,
+                "doorId": 2
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the unassignment was accepted for processing
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the unassignment is invalid
+
+    + Body
+
+# Group Jobs
+
+## Summary [/Api/Admin/Jobs/Summary]
+
+### GET [GET]
+
+This endpoint returns a summary of assigned, unassigned and completed jobs.
+
++ Request
+
+    + Headers
+    
+            If-None-Match: ETAG-FROM-LAST-REQUEST
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+
++ Response 200 (application/json)
+Either no `If-None-Match` header was supplied, or the ETag it specifies is not current.
+
+    + Headers
+    
+            ETag: A-NEW-ETAG-FOR-THIS-REQUEST
+    
+    + Body
+    
+            {
+                "assignedJobs": 8,
+                "unassignedJobs": 0,
+                "completedJobs": 49
+            }
+
++ Response 304
+The data has not changed since the request was last made.
+
+    + Body 
+
+## Search Jobs [/Api/Admin/Jobs/Search?searchTerm={searchTerm}&page={page}&sort={sort}&status={status}]
+
+### GET [GET]
+
+This endpoint returns a list of jobs matching the search term for the specified page.
+
++ Parameters
+    + searchTerm (string) - The term to search for
+    + page (number) - The page of search results to return
+    + sort (object) - The sort arguments
+        
+        + RecentActivity
+        + Assigned
+        + Unassigned
+
+    + status (JobStatus) - The job status
+
+        + Draft
+        + PackagesAllocated
+        + Assigned
+        + InProgress
+        + Complete
+
++ Request
+
+    + Headers
+
+            Accept: application/hal+json
+            Authorization: Bearer ae2589363fb93e463d1bb739e0231524
+
++ Response 200 (application/hal+json; charset=utf-8)
+
+    + Body
+    
+            {
+                "_embedded": {
+                    "job": [
+                        {
+                            "_embedded": null,
+                            "_links": {
+                                "self": {
+                                    "href": "/StockonnectAPI/Admin/Jobs/REFJOB"
+                                },
+                                "user": {
+                                    "href": "/StockonnectAPI/Admin/Users/2"
+                                }
+                            },
+                            "assignedTo": {
+                                "id": 2,
+                                "name": "Mark Woodhall"
+                            },
+                            "at": "2016-06-28T18:41:39.1073187+00:00",
+                            "lastModified": "2016-06-30T13:42:41+01:00",
+                            "reference": "REFJOB",
+                            "totalPackages": 3,
+                            "totalPackagesCollected": 1,
+                            "totalPackagesToCollect": 2,
+                            "status": "InProgress"
+                        }
+                    ]
+                },
+                "_links": {
+                    "job": {
+                        "href": "/StockonnectAPI/Admin/Jobs/REFJOB"
+                    },
+                    "jobs": {
+                        "href": "/StockonnectAPI/Admin/Jobs/Search{?searchTerm,sort,status}",
+                        "templated": true
+                    },
+                    "page": {
+                        "href": "/StockonnectAPI/Admin/Jobs/Search{?searchTerm,sort,status}",
+                        "templated": true
+                    },
+                    "self": {
+                        "href": "/StockonnectAPI/Admin/Jobs/Search?searchTerm=JOB&sort=RecentActivity&status=Assigned"
+                    }
+                },
+                "page": 1,
+                "resourceList": null,
+                "totalPages": 1,
+                "totalResults": 1
+            }
+
+
+## Job [/Api/Admin/Jobs/{reference}]
+
+### GET [GET]
+
+This endpoint returns the full job for the specified job reference
+
++ Parameters
+    + reference (string) - The job reference
+
++ Request
+
+    + Headers
+
+            Accept: application/json
+            Authorization: Bearer ae2589363fb93e463d1bb739e0231524
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when the job is not found
+
+    + Body
+
++ Response 200 (application/json; charset=utf-8)
+
+    + Body
+
+            {
+                "assignedTo": {
+                    "id": 2,
+                    "name": "Mark Woodhall"
+                },
+                "at": "2016-06-28T18:41:39.1073187+00:00",
+                "by": {
+                    "id": 2,
+                    "name": "Mark Woodhall"
+                },
+                "collectedPackages": [
+                    {
+                        "barcode": "XXXXSS12",
+                        "door": {
+                            "id": 101,
+                            "name": "Office"
+                        },
+                        "groupId": 1,
+                        "location": {
+                            "id": 1,
+                            "name": "Marks Place"
+                        },
+                        "notes": null
+                    }
+                ],
+                "lastModified": "2016-06-30T13:42:41+01:00",
+                "packages": [
+                    {
+                        "barcode": "3185XXX",
+                        "door": {
+                            "id": 101,
+                            "name": "Office"
+                        },
+                        "groupId": 1,
+                        "location": {
+                            "id": 1,
+                            "name": "Marks Place"
+                        },
+                        "notes": null,
+                        "scannedInDate": "2016-01-21T15:17:53.443+01:00"
+                    },
+                    {
+                        "barcode": "XXXSS12",
+                        "door": {
+                            "id": 101,
+                            "name": "Office"
+                        },
+                        "groupId": 1,
+                        "location": {
+                            "id": 1,
+                            "name": "Marks Place"
+                        },
+                        "notes": null,
+                        "scannedInDate": "2016-01-21T15:17:53.443+01:00"
+                    }
+                ],
+                "reference": "REFJOB",
+                "totalPackages": 3,
+                "totalPackagesCollected": 1,
+                "totalPackagesToCollect": 2,
+                "status": "InProgress"
+            }
+
+### PUT [PUT]
+
+Creates a new job with the supplied reference number.
+
++ Parameters
+    + reference (string) - The job reference
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the job was accepted for creation
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the job is missing or contains an invalid reference
+
+    + Body
+
++ Response 409 (application/json; charset=utf-8)
+This is returned when the job reference specified is already is use
+
+    + Body
+
+## Assign Job [/Api/Admin/Jobs/{reference}/Assign]
+
+### POST [POST]
+
+Assign a job to the specified user (engineer)
+
++ Parameters
+    + reference (string) - The job reference
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "reference": "My Job",
+                "assignToUserId": 1
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the job assignment was accepted for processing
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the job assignment request is invalid, e.g for an invalid job reference or user/engineer
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when the job or the asignee is not found
+
+    + Body
+
+## Unassign Job [/Api/Admin/Jobs/{reference}/Unassign]
+
+### POST [POST]
+
+Unassign a job from the specified user (engineer)
+
++ Parameters
+    + reference (string) - The job reference
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "unassignFromUserId": 1
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the job unassignment was accepted for processing
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the job unassignment request is invalid, e.g for an invalid job reference or user/engineer
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when the job is not found
+
+    + Body
+
++ Response 409 (application/json; charset=utf-8)
+This is returned when the job is not currently assigned to an engineer
+
+    + Body
+
+## Add Packages To Job [/Api/Admin/Jobs/{reference}/AddPackages]
+
+### POST [POST]
+
+Add packages to the specfied job
+
++ Parameters
+    + reference (string) - The job reference
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "packages": [
+                    "123123123",
+                    "321321321"
+                ]
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the add packages request was accepted for processing
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the add packages request is invalid, e.g for an invalid job reference
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when the job is not found
+
+    + Body
+
+## Remove Packages From Job [/Api/Admin/Jobs/{reference}/RemovePackages]
+
+### POST [POST]
+
+Remove packages from the specfied job
+
++ Parameters
+    + reference (string) - The job reference
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "packages": [
+                    "123123123",
+                    "321321321"
+                ]
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the remove packages request was accepted for processing
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the remove packages request is invalid, e.g for an invalid job reference
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when the job is not found
+
+    + Body
+
+## Change Job Reference [/Api/Admin/Jobs/{reference}/ChangeReference] 
+
+### POST [POST]
+
+Change the job specified by {reference} to have the newly supplied reference number
+
++ Parameters
+    + reference (string) - The job reference
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer BEARER-TOKEN-FROM-AUTHN-API
+    
+    + Body
+    
+            {
+                "newReference": "My Job"
+            }
+
++ Response 200 (application/json; charset=utf-8)
+This is returned when the job reference change was accepted for processing
+
+    + Body
+    
++ Response 400 (application/json; charset=utf-8)
+This is returned when the job is missing or contains an invalid reference
+
+    + Body
+
++ Response 404 (application/json; charset=utf-8)
+This is returned when the job specified by {reference} does not exist
+
+    + Body
+
++ Response 409 (application/json; charset=utf-8)
+This is returned when the new job reference specified is already is use
+
+    + Body
+
+# Group Data Structures
+
+## Activity (object)
+
++ id: `1051-201602180908080694086` (string) -- The unique id of the activity
++ location (object)
+    + id: `1` (number)
+    + name: `Coventry` (string)
++ door (object)
+        + id: `1` (number)
+        + name: `011` (string)
++ doorSize: `Small` (enum[string]) -- The size of the door
+    + Members
+        + `Small`
+        + `Medium`
+        + `Large`
++ scannedIn (array[string]) -- The tracking numbers that were scanned into the door
++ scannedOut (array[string]) -- The tracking numbers that were scanned out of the door
++ notScannedOut (array[string]) -- The tracking numbers that were not scanned out of the door
++ at: `2016-01-21T14:10:53.454+00:00` (string) -- The time at which the activity occurred
++ by (object)
+    + id: `1` (number)
+    + name: `Mark Bromwell` (string)
++ group (object)
+    + id: `1` (number)
+    + name: `ByBox` (string)
++ carrier (object)
+    + id: `1` (number)
+    + name: `Carrier Name` (string)
++ origin `App` (enum[string]) -- The origin of the activity, where it was initiated
+    + Members
+        + `App`
+        + `Manual`
++ notScannedOutReason `UnableToIdentify` (enum[string]) -- The reason why the notScannedOut items were left
+    + Members
+        + `UnableToIdentify`
+        + `CannotOrWillNot`
+        + `ChangedMind`
+        + `NotThere`
+        
+## Carrier (object)
+
++ id: `1` (number) -- The unique id of the the carrier
++ name: `Carrier-name` (string) -- The name of the carrier
++ emailAddress: `test@test.com` (string) -- The contact email address
++ phone: `(01203) 848484` (string) -- The contact phone number
++ isSuspended: `false` (boolean) -- Is the carrier suspended or not
++ numberOfAssignedDoors: `2` (number) -- The number of doors assigned to the carrier
++ numberOfAssignedLocations: `1` (number) -- The number of locations assigned to the carrier
++ numberOfAssignedClients: `1` (number) -- The number of clients assigned to the carrier
++ numberOfPendingCollections: `0` (number) -- The number of pending collections for the carrier
++ locations (array[LocationSummary]) -- The locations the carrier is assigned to
++ assignedClients (array[object]) -- The clients assigned to the carrier
+    + id: `1` (number)
+    + name: `Sample Client` (string)
+    
+## Location (object)
+
++ id: `1` (number) -- The unique id of the location
++ name: `Coventry` (string) -- The name of the location
++ lat: `1.292` (number) -- The latitude of the location
++ lon: `0.212` (number) -- The longitude of the location
++ isSuspended: `false` -- Is the location suspended or not
++ address (object)
+    + address1: `6 Ascot Drive` (string) -- The first address line
+    + address2: `Cusworth` (string) -- The second address line
+    + address3: `Doncaster` (string) -- The third address line
+    + address4: `South Yorkshire` (string) -- The fourth address line
+    + address5: `...` (string) -- The fifth address line
+    + postalCode: `DN5 8QA` (string) -- The postal code of the address
+    + country: `Great Britain`
++ numberOfDoors: `2` (number) -- The number of doors in the location
++ notes: `Opposite the hotel` (string) -- Notes to describe the location
++ doors (array[DoorSummaryWithItems]) -- The doors in the location
+
+## Door (object)
+
++ id: `1` (number) -- The unique identifier of the door
++ name: `011` (string) -- The name of the door
++ size: `Small` (enum[string]) -- The size of the door
+    + Members
+        + `Small`
+        + `Medium`
+        + `Large`
++ location (object)
+    + id: `1` (number)
+    + name: `Coventry` (string)
++ lockId `1` (number) -- The id of the lock that is installed in the door
++ codeChangePending `false` (boolean) -- If the door is waiting for it's access code to change or not
++ isSuspended: `false` -- Is the door suspended or not
++ numberOfAssignedUsers: `2` (number) -- The number of users assigned to the door
++ numberOfAssignedCarriers: `1` (number) -- The number of carriers assigned to the door (carriers only shown for client users)
++ numberOfAssignedClients: `1` (number) -- The number of clients assigned to the door (clients only shown for carrier users)
++ numberOfItems: `1` (number) -- The number of items currently inside the door
++ assignedUsers (array[object])
+    + id: `1` (number)
+    + name: `Mark Bromwell` (string)
++ assignedCarriers (array[object])
+    + id: `2` (number)
+    + name: `Example Carrier` (string)
++ assignedClients (array[object])
+    + id: `3` (number)
+    + name: `Example Client` (string)
++ items (array[DoorContent])
+
+## TrackingNumber (object)
+
++ location (object)
+    + id: `1` (number)
+    + name: `Coventry` (string)
++ door (object)
+        + id: `1` (number)
+        + name: `011` (string)
++ trackingNumber: `239232983` (string) -- The tracking number
++ scannedInDate: `2016-01-21T14:10:53.454+00:00` (string) -- The time at which item was scnned into the door
++ assignedTo (object)
+    + id: `1` (number) -- The id of the user that the item is assigned to
+    + name: `Mark Bromwell` (string) -- The name of the user that the item is assigned to
+
+## User (object)
+
++ id: `1` (number) -- The unique id of the user
++ username: `mark.bromwell` (string) -- The username of the user
++ firstName: `Mark` (string) -- The first name of the user
++ lastName: `Bromwell` (string) -- The last name of the user
++ emailAddress: `mark.bromwell@bybox.com` (string) -- The email address of the user
++ group (object)
+    + id: `1` (number)
+    + name: `ByBox` (string)
++ isAdmin: `false` (boolean) -- The user has admin rights or not 
++ isSuperAdmin: `false` (boolean) -- The user has super admin rights or not
++ isSuspended: `false` (boolean) -- The user is suspended or not
++ numberOfAssignedDoors: `2` (number) -- The number of doors assigned to the user
++ numberOfAssignedLocations: `1` (number) -- The number of locations assigned to the user
++ numberOfPendingCollections: `0` (number) -- The number of pending collections for the user
++ locations (array[LocationSummary]) --The locations the user is assigned to
+
+## LocationSummary (object)
+
++ id: `1` (number) -- The unique id of the location
++ name: `Coventry` (string) -- The name of the location
++ doors (array[DoorSummary]) -- The doors in the locations
+
+## DoorSummary (object)
+
++ id: `1` (number) -- The unique id of the door
++ name: `011` (string) -- The name of the door
++ size: `Small` (enum[string]) -- The size of the door
+    + Members
+        + `Small`
+        + `Medium`
+        + `Large`
+        
+## DoorSummaryWithItems (object)
+
++ Include DoorSummary
++ numberOfItems: `2` (number) -- The number of items currently in the door
+        
+## DoorContent
+
++ groupId: `1` (number) -- The group identifier that the item belongs to
++ trackingNumber: `32287373` (string) -- The tracking number of the item
++ user (object)
+    + id: `1` (number) -- The id of the user that scanned the item in
+    + name: `Mark Bromwell` (string) -- The name of the user that scanned the item in
++ scannedInDate: `2016-01-21T14:10:53.454+00:00` (string) -- The time the item was scanned in
++ assignedTo (object)
+    + id: `1` (number) -- The id of the user that the item is assigned to
+    + name: `Mark Bromwell` (string) -- The name of the user that the item is assigned to
+
+## Update (object)
+
++ type: `UserModified` (enum[string]) -- The type of update.
+    + Members
+        + `UserAdded`
+        + `UserModified`
+        + `UserSuspended`
+        + `UserResumed`
+        + `LocationAdded`
+        + `LocationModified`
+        + `LocationSuspended`
+        + `LocationResumed`
+        + `DoorAdded`
+        + `DoorModified`
+        + `DoorSuspended`
+        + `DoorResumed`
+        + `LockAdded`
+        + `LockModified`
+        + `LockSuspended`
+        + `LockResumed`
+        + `DoorAssigned`
+        + `DoorUnassigned`
++ qty: `23` (number) -- The number of updates that occurred.
++ by: `Mark Bromwell` (string) -- The name of the user that triggered the update.
++ at: `2016-01-21T14:10:53.454+00:00` (string) -- The time at which the update was triggered.
+
+## Notification (object)
+
++ id: `1` (number) -- The unique id of the notifcation
++ groupId: `1` (number) -- The group identifier the notification belongs to
++ severity: `Information` (enum[string]) -- The severity of the notification
+    + Members
+        + `Information`
+        + `Warning`
+        + `Error`
++ type: `DoorOpen` (enum[string]) -- The type of notification
+    + Members
+        + `DoorBatteryLow`
+        + `DoorOpen`
++ entities (object)
+    + user (object)
+        + id: `1` (number)
+        + name: `Mark Bromwell` (string)
+    + door (object)
+        + id: `1` (number)
+        + name: `Door name 011` (string)
+    + location (object)
+        + id: `1` (number)
+        + name: `Coventry` (string)
++ dateOfNotification `2016-01-21T14:10:53.454+00:00` (string) -- The time at which the notification was triggered
++ cleared `false` (boolean) -- The cleared status of the notification
++ userCleared (object)
+    + id `1` (number) -- The identifier of the user that cleared the notification
+    + name `Mark Bromwell` (string) -- The name of the user that cleared the notification
++ dateCleared `2016-01-22T14:10:53.454+00:00` (string) -- The time at which the notification was cleared
+
+## AssignJob (object)
+
++ assignToUserId: 1 (number) - The id of the user (engineer) to assign the job to
+
+## Package
+
++ barcode `121212111` (string) - The barcode
++ notes `Some notes` (string) - Some notes associated with the barcode
+
+## AddPackagesToJob (object)
+
++ packages `[{"barcode": "12121212", "notes": "Collect Me"} {"barcode": "21212121", "notes": "Collect Me"}]` (array[Package]) - The packges to add to the job
+
+## RemovePackagesFromJob (object)
+
++ packages `[{"barcode": "12121212"}, {":barcode": "21212121"}]` (array[Package]) - The packages to remove from the job
+
+## JobStatus (enum[string])
+
++ Draft
++ PackagesAllocated
++ Assigned
++ InProgress
++ Complete
